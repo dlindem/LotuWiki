@@ -6,13 +6,14 @@ Written by [User:DL2204](https://www.wikidata.org/wiki/Q57694630) with the help 
 ## Functions
 
 This app gets list of items from any Wikibase, proposes matching Wikidata items, and writes manually selected matches to the Wikibase, or records the decision that the Wikibase item is not found on Wikidata.
-* The app assumes that the Wikibase P1 property is of type externalID and is meant to express exact matches with Wikidata.
+* The app assumes that the Wikibase P1 property is of type externalID and is meant to express exact matches with Wikidata ([example](https://ehkultura.wikibase.cloud/wiki/Property:P1)).
 * The decision of marking a Wikibase item to be missing on Wikidata is recorded writing the string "CREATE" to the P1 property. That can then be used for querying for those items that should be cloned on Wikidata (this app does not do that).
 * Several tasks can be defined inside the app, each with specifications for
   * the Wikibase to query and to write the matches to
   * the SPARQL query to be used for retrieving items to match
   * the default language to perform label searches in Wikidata
   * the set of Wikidata properties to retrieve values and display them to the user in the aligment procedure
+* See some [screenshots](screenshots)
 
 ## Installation
 

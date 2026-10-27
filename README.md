@@ -19,6 +19,7 @@ This app gets list of items from any Wikibase, proposes matching Wikidata items,
 * Clone this repo
 * Install required modules from [requirements.txt](requirements.txt)
 * Fill in username(s) and password(s) in [config-private.py](config_private.py)
+  * The wikibase user needs to be part of group "bots"
 
 ## Usage
 * Run [app.py](app.py)

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>New task</h2>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('task_new') }}">
+    <p>
+      <label for="name"><strong>Task name</strong></label><br>
+      <input type="text" id="name" name="name" value="{{ name }}" size="40"
+             placeholder="e.g. euskal_herria">
+      <small class="meta">Becomes the filename in tasks/</small>
+    </p>
+    <p>
+      <label for="description"><strong>Description (optional)</strong></label><br>
+      <input type="text" id="description" name="description" value="{{ description }}" size="60">
+    </p>
+    <p>
+      <label for="wikibase_name"><strong>Base URL of the Wikibase</strong> <small>(without 'https://' and without trailing slash, e.g. 'ehkultura.wikibase.cloud')</small></label><br>
+      <input type="text" id="wikibase_name" name="wikibase_name" value="{{ wikibase_name }}" size="60">
+    </p>
+    <p>
+      <label for="default_search_language"><strong>Default language for Wikidata searches <small>(Wikimedia language code, usually two letters)</small></strong></label><br>
+      <input type="text" id="default_search_language" name="default_search_language" value="{{ default_search_language }}" size="60">
+    </p>
+    <p>
+      <label for="query"><strong>Default SPARQL query</strong></label><br>
+      <textarea name="query" id="query" rows="18">{{ query }}</textarea>
+    </p>
+
+    <h3>Wikidata properties to show for candidates</h3>
+    <p class="meta">
+      For each property, enter the Wikidata property ID (<code>P…</code>) and the
+      label to display. Empty labels default to the property ID.
+    </p>
+    <table id="props">
+      <thead><tr><th>Property</th><th>Label</th></tr></thead>
+      <tbody>
+        {% for p in properties %}
+          <tr>
+            <td><input name="prop_id" value="{{ p.property }}" size="8"></td>
+            <td><input name="prop_label" value="{{ p.label }}" size="24"></td>
+          </tr>
+        {% endfor %}
+        <!-- three spare rows so the user can add without JS -->
+        {% for _ in range(3) %}
+          <tr>
+            <td><input name="prop_id" value="" size="8"></td>
+            <td><input name="prop_label" value="" size="24"></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="actions">
+      <button type="submit">Save task</button>
+      <a href="{{ url_for('index') }}">cancel</a>
+    </p>
+  </form>
+{% endblock %}

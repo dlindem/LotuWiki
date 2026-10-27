@@ -1,0 +1,20 @@
+PREFIX ehwb: <https://ehkultura.wikibase.cloud/entity/>
+PREFIX ehdp: <https://ehkultura.wikibase.cloud/prop/direct/>
+PREFIX ehp: <https://ehkultura.wikibase.cloud/prop/>
+PREFIX ehps: <https://ehkultura.wikibase.cloud/prop/statement/>
+PREFIX ehpq: <https://ehkultura.wikibase.cloud/prop/qualifier/>
+PREFIX ehpr: <https://ehkultura.wikibase.cloud/prop/reference/>
+PREFIX ehno: <https://ehkultura.wikibase.cloud/prop/novalue/>
+
+SELECT ?item ?itemLabel ?fitxa ?wd ?placeLabel
+       (GROUP_CONCAT(?class; separator=" | ") as ?classes)
+WHERE {
+  ?item ehdp:P56 ?ej. bind(iri(concat("https://www.euskadi.eus/web01-apintegr/eu/y47aIntegraWar/IBConsultaController/fichaConsultaSinMigas/",?ej)) as ?fitxa)
+  OPTIONAL { ?item ehdp:P36 ?place. }
+  FILTER NOT EXISTS { ?item ehdp:P1 ?wd. }
+  OPTIONAL { ?item ehdp:P5 [ rdfs:label ?class ]. FILTER(lang(?class)="eu") }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "eu,es,mul,en". }
+}
+GROUP BY ?item ?itemLabel ?fitxa ?wd ?placeLabel ?classes
+
+limit 5

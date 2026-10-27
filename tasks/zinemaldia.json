@@ -1,0 +1,24 @@
+{
+  "name": "zinemaldia",
+  "description": "Zinemaldia films: Find on Wikidata",
+  "wikibase": "ehkultura.wikibase.cloud",
+  "default_search_language": "eu",
+  "wikidata_properties": [
+    {
+      "property": "P705",
+      "label": "native_label"
+    },
+    {
+      "property": "P495",
+      "label": "country_of_origin"
+    },
+    {
+      "property": "P57",
+      "label": "director"
+    },
+    {
+      "property": "P577",
+      "label": "publication_date"
+    }
+  ]
+}

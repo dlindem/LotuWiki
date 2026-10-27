@@ -1,0 +1,5 @@
+Flask>=3.0
+Flask-Session>=0.6
+requests>=2.31
+SPARQLWrapper>=2.0
+wikibaseintegrator

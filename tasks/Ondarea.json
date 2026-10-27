@@ -1,0 +1,12 @@
+{
+  "name": "Ondarea",
+  "description": "Matching EJ Ondarea to Wikidata",
+  "wikibase": "ehkultura.wikibase.cloud",
+  "default_search_language": "eu",
+  "wikidata_properties": [
+    {
+      "property": "P131",
+      "label": "place"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Wikidata Alignment Tool</title>
+  <link href="/static/favicon.ico" rel="shortcut icon"/>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    textarea { width: 100%; font-family: monospace; font-size: 0.85rem; }
+    button { padding: 0.5rem 1rem; cursor: pointer; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .card h3 { margin-top: 0; }
+    .meta { color: #555; font-size: 0.9rem; }
+    .badge { display: inline-block; background: #eef; border-radius: 4px; padding: 0 6px; margin-right: 4px; font-size: 0.8rem; }
+    .error { color: #b00020; }
+    .progress { color: #666; margin-bottom: 1rem; }
+    .actions { margin-top: 0.5rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .span2 {
+      grid-column: 1 / -1;   /* "colspan 2" in grid terms */
+    }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      .span2 { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Wikidata Alignment Tool</h1>
+  {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if message %}<p class="meta">{{ message }}</p>{% endif %}
+
+  {% if tasks %}
+    <p>
+      Select a task. Its default SPARQL query is loaded into the textarea below;
+      you may edit it for this run before generating the list.
+    </p>
+    <form method="post" id="task-form">
+      <label for="task"><strong>Task</strong></label><br>
+      <select name="task" id="task">
+        {% for t in tasks %}
+          <option value="{{ t }}" {% if t == default_task %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      &nbsp;<a href="{{ url_for('task_new') }}">+ new task</a>
+      <br><br>
+      <label for="query"><strong>SPARQL query (editable for this run)</strong></label><br>
+      <textarea name="query" id="query" rows="25">{{ default_query }}</textarea>
+      <div class="actions">
+        <button type="submit">Generate list</button>
+      </div>
+    </form>
+
+    <script>
+      // Reload the page with ?task=<name> whenever the selection changes,
+      // so the textarea always shows the selected task's .rq file.
+      document.getElementById("task").addEventListener("change", function () {
+        const params = new URLSearchParams({ task: this.value });
+        window.location = "{{ url_for('index') }}?" + params.toString();
+      });
+    </script>
+  {% else %}
+    <p class="meta">No tasks yet.</p>
+    <p><a href="{{ url_for('task_new') }}">Create the first task</a></p>
+  {% endif %}
+{% endblock %}

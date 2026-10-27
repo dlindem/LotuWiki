@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Finished</h2>
+  <p>You processed {{ results|length }} source items.</p>
+
+  {% if results %}
+    <table border="1" cellpadding="6" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Source</th><th>Source label</th>
+          <th>Target</th><th>Target label</th><th>Decision</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+          <tr>
+            <td>{{ r.source }}</td>
+            <td>{{ r.source_label }}</td>
+            <td>{{ r.target or "—" }}</td>
+            <td>{{ r.target_label or "—" }}</td>
+            <td>
+              {{ r.decision }}
+              {% if r.alignment_url %}
+                &mdash;
+                <a href="{{ r.alignment_url }}" target="_blank" rel="noopener noreferrer"> (has been written)</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <p><a href="{{ url_for('reset') }}">Start over</a></p>
+{% endblock %}

@@ -1,0 +1,22 @@
+PREFIX ehwb: <https://ehkultura.wikibase.cloud/entity/>
+PREFIX ehdp: <https://ehkultura.wikibase.cloud/prop/direct/>
+PREFIX ehp: <https://ehkultura.wikibase.cloud/prop/>
+PREFIX ehps: <https://ehkultura.wikibase.cloud/prop/statement/>
+PREFIX ehpq: <https://ehkultura.wikibase.cloud/prop/qualifier/>
+PREFIX ehpr: <https://ehkultura.wikibase.cloud/prop/reference/>
+PREFIX ehno: <https://ehkultura.wikibase.cloud/prop/novalue/>
+
+select ?item ?itemLabel (lang(?itemLabel) as ?lang) ?izenburua (YEAR(?data) as ?urtea) (group_concat(distinct ?zuz;SEPARATOR=", ") as ?zuzend) (group_concat(distinct ?her;SEPARATOR=", ") as ?herrialdeak) (group_concat(distinct ?class; SEPARATOR=", ") as ?classes)
+where
+{?item ehdp:P5 ehwb:Q163123. # pelikula
+ ?item ehdp:P25 ?izenburua; rdfs:label ?itemLabel. filter(lang(?itemLabel)!="mul")
+ OPTIONAL { ?item ehdp:P5 [ rdfs:label ?class ]. FILTER(lang(?class)="en") }
+ optional{?item ehdp:P26 ?data.}
+ optional{?item ehdp:P29 [rdfs:label ?her]. filter(lang(?her)="en")}
+ optional{?item ehdp:P27 ?zuz.}
+ filter not exists {?item ehdp:P1 ?wd.}
+ filter not exists {?item ehdp:P31 ?tmdb.}
+ #SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,eu". }
+ } group by ?item ?itemLabel ?lang ?izenburua ?data ?zuzend ?herrialdeak ?classes
+order by ?item
+limit 10

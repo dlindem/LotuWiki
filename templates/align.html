@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+  <p class="progress">
+    Item {{ position + 1 }} of {{ total }} &mdash;
+    <a href="{{ url_for('reset') }}">reset</a>
+  </p>
+
+  <div class="grid">
+
+    <!-- 1. Source item — full width -->
+    <div class="card span2" style="background:#f7f7ff">
+      <h3>Source item</h3>
+      <p><strong>{{ current.itemLabel }}</strong></p>
+            <p class="meta">
+        <span class="badge">QID</span><a href="{{ current.item }}" target="_blank" rel="noopener noreferrer">{{ current.item }}</a><br>
+        {% for key, val in current.items() %}
+          {% if key not in ("item", "itemLabel") and val %}
+            <span class="badge">{{ key }}</span>
+            {% if val.startswith('http://') or val.startswith('https://') %}
+              <a href="{{ val }}" target="_blank" rel="noopener noreferrer">{{ val }}</a><br>
+            {% else %}
+              {{ val }}<br>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </p>
+    </div>
+
+    <!-- 2. Search form — full width -->
+    <div class="card span2">
+      <form method="get" action="{{ url_for('align') }}">
+        <label for="search"><strong>Search string</strong></label>
+        &nbsp;
+        <label for="lang"><strong>Language</strong></label><br>
+        <input type="text" id="search" name="search" value="{{ search_string }}" style="width: 60%;">
+        <input type="text" id="lang" name="lang" value="{{ search_lang }}" maxlength="3" size="3" style="width: 4em; text-transform: lowercase;">
+        <button type="submit">Update candidates</button>
+        {% if search_string != default_label or search_lang != default_lang %}
+          &nbsp;<a href="{{ url_for('align') }}">reset</a>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- 3. Candidates — two columns -->
+    {% if candidates %}
+      {% for cand in candidates %}
+        <div class="card">
+          <h3>{{ cand.itemLabel }}
+            <small class="meta">(<a href="{{ cand.item }}" target="_blank" rel="noopener noreferrer">{{ cand.item }}</a>)</small>
+          </h3>
+          {% if cand.image %}
+            <p style="margin: 0.5rem 0;">
+              <img src="{{ cand.image }}"
+                   alt="image for {{ cand.itemLabel }}"
+                   style="max-width: 200px; max-height: 200px; height: auto; width: auto;"
+                   loading="lazy">
+            </p>
+          {% endif %}
+          {% if cand.itemDescription %}<p class="meta">{{ cand.itemDescription }}</p>{% endif %}
+          <p class="meta" style="font-size:0.8em">rank score: {{ '%.2f' | format(cand._score) }}</p>
+
+          {% set shown_pairs = [] %}
+          <p class="meta">
+            {% if cand.classes %}
+              <span class="badge">instance of</span>{{ cand.classes }}<br>
+            {% endif %}
+            {% if cand.subclassOf %}
+              <span class="badge">subclass of</span>{{ cand.subclassOf }}<br>
+            {% endif %}
+            {% if cand.partOf %}
+              <span class="badge">part of</span>{{ cand.partOf }}<br>
+            {% endif %}
+            {% if cand.placeLabel and ('place', cand.placeLabel) not in shown_pairs %}
+              <span class="badge">place</span>{{ cand.placeLabel }}<br>
+              {% set _ = shown_pairs.append(('place', cand.placeLabel)) %}
+            {% endif %}
+            {% for p in task.wikidata_properties %}
+              {% set val = cand.get('x_' ~ p.property) %}
+              {% set lbl = p.label or p.property %}
+              {% if val and (lbl, val) not in shown_pairs %}
+                <span class="badge">{{ lbl }}</span>{{ val }}<br>
+                {% set _ = shown_pairs.append((lbl, val)) %}
+              {% endif %}
+            {% endfor %}
+          </p>
+
+          <form method="post" action="{{ url_for('choose') }}">
+            <input type="hidden" name="choice" value="{{ loop.index0 }}">
+            <input type="hidden" name="candidate_payload" value='{{ cand | tojson }}'>
+            <button type="submit"><strong>match</strong> this candidate</button>
+          </form>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="meta span2">No candidates found for this search string.</p>
+    {% endif %}
+
+    <!-- 4. No-match options — full width -->
+    <div class="card span2">
+      <p class="meta">No match for this item?</p>
+      <form method="post" action="{{ url_for('choose') }}" style="display:inline">
+        <input type="hidden" name="choice" value="no_match">
+        <button type="submit"><strong>No match</strong> (Mark for new WD item creation)</button>
+      </form>
+      <form method="post" action="{{ url_for('choose') }}" style="display:inline; margin-left: 0.5rem;">
+        <input type="hidden" name="choice" value="no_decision">
+        <button type="submit"><strong>No decision</strong> (just skip this item)</button>
+      </form>
+    </div>
+
+  </div>
+{% endblock %}

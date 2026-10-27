@@ -1,1 +1,0 @@
-/home/david/Documents/GitHub/echolot/ehwbi.py

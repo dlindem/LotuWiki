@@ -65,7 +65,7 @@ def do_alignment(source, target):
     wd_qid = re.search(r'Q\d+$', target).group(0)
     references = wikibase.References()
     reference1 = wikibase.Reference()
-    reference1.add(wikibase.String(prop_nr="P37", value="manually set link"))
+    reference1.add(wikibase.String(prop_nr="P37", value="manual decision"))
     reference1.add(wikibase.Time(prop_nr="P8", time="now"))
     references.add(reference1)
     wb_item.claims.add(wikibase.ExternalID(prop_nr="P1", value=wd_qid, references=references), action_if_exists=wikibase.ActionIfExists.MERGE_REFS_OR_APPEND)
@@ -86,7 +86,8 @@ def do_no_match(source):
     wb_item.claims.add(wikibase.ExternalID(prop_nr="P1", value="CREATE", references=references),
                        action_if_exists=wikibase.ActionIfExists.MERGE_REFS_OR_APPEND)
     wb_item.write()
-    return f"Wrote 'CREATE' to P1 in {source}"
+    print(f"Wrote 'CREATE' to P1 in {source}")
+    return source.replace("/entity/", "/wiki/Item:") + "#P1"
 
 # ---------------------------------------------------------------------------
 # SPARQL helpers
@@ -464,13 +465,14 @@ def choose():
     choice = request.form.get("choice", "")
 
     if choice == "no_match":
-        print(do_no_match(current.get("item", None)))
+        alignment_url = do_no_match(current.get("item", None))
         record = {
             "source": current.get("item", ""),
             "source_label": current.get("itemLabel", ""),
             "target": None,
             "target_label": None,
             "decision": "New Wikidata item needed",
+            "alignment_url": alignment_url
         }
     elif choice == "no_decision":
         record = {
@@ -489,7 +491,7 @@ def choose():
             "source_label": current.get("itemLabel", ""),
             "target": candidate.get("item", ""),
             "target_label": candidate.get("itemLabel", ""),
-            "decision": "Wikidata match (has been written)",
+            "decision": "Wikidata match",
             "alignment_url": alignment_url
         }
 

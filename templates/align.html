@@ -25,7 +25,22 @@
         {% endfor %}
       </p>
     </div>
-
+        <!-- 2a. Search-mode switch (only when the item has coordinates) -->
+    {% if has_geo %}
+      <div class="card span2">
+        {% if mode == "label" %}
+          <p class="meta">
+            This item has coordinates: <code>{{ geo_point }}</code>.
+            <a href="{{ url_for('align', mode='geo') }}">Search Wikidata items within 1 km</a>
+          </p>
+        {% else %}
+          <p class="meta">
+            Showing Wikidata items within 1 km of <code>{{ geo_point }}</code>.
+            <a href="{{ url_for('align') }}">Back to label search</a>
+          </p>
+        {% endif %}
+      </div>
+    {% endif %}
     <!-- 2. Search form — full width -->
     <div class="card span2">
       <form method="get" action="{{ url_for('align') }}">

@@ -230,8 +230,79 @@ def get_matching_candidates(querystring: str, language: str = "eu",
 
     prop_keys = [f"x_{e['property']}" for e in valid_props]
     return _conflate_and_rank(raw, source_classes=source_classes,
-                              prop_keys=prop_keys)
+                              prop_keys=prop_keys, mode="label")
 
+def get_candidates_by_coordinates(point_wkt: str,
+                                  language: str = "eu",
+                                  extra_properties: list[dict] | None = None,
+                                  source_classes: str = "",
+                                  source_label: str = "",
+                                  radius_km: float = 1.0):
+    """Radius search around a WKT Point, restricted to items within radius_km."""
+    if not point_wkt or not point_wkt.strip().startswith("Point("):
+        return []
+
+    extra_properties = extra_properties or []
+    label_langs = f"{language},eu,es,en,mul"
+    valid_props = [e for e in extra_properties
+                   if re.fullmatch(r"P\d+", e.get("property", ""))]
+
+    select_extras = ""
+    group_extras = ""
+    triple_extras = ""
+    select_vars = ""
+    for entry in valid_props:
+        pid = entry["property"]
+        select_extras += f"(GROUP_CONCAT(DISTINCT ?x_{pid}Label; SEPARATOR = \", \") AS ?x_{pid}) "
+        group_extras += f"?x_{pid} "
+        triple_extras += f"OPTIONAL {{ ?item wdt:{pid} ?x_{pid}. }}\n"
+        select_vars += f" ?x_{pid} ?x_{pid}Label"
+
+    query = (
+        "SELECT ?item ?itemLabel ?itemDescription ?placeLabel "
+        "(GROUP_CONCAT(DISTINCT ?classLabel; SEPARATOR = \", \") AS ?classes) "
+        "(GROUP_CONCAT(DISTINCT ?subcOfLabel; SEPARATOR = \", \") AS ?subclassOf) "
+        "(GROUP_CONCAT(DISTINCT ?pOfLabel; SEPARATOR = \", \") AS ?partOf) "
+        "(SAMPLE(?img) AS ?image) "
+        + select_extras
+        + f"""
+WHERE {{
+  SERVICE wikibase:around {{
+    ?item wdt:P625 ?location .
+    bd:serviceParam wikibase:center "{point_wkt}"^^geo:wktLiteral .
+    bd:serviceParam wikibase:radius "{radius_km}" .
+  }}
+  {{
+    SELECT ?item ?itemLabel ?itemDescription ?class ?classLabel
+           ?subcOfLabel ?pOfLabel ?placeLabel ?img
+    """
+        + select_vars
+        + """
+    WHERE {
+      ?item wdt:P31 ?class.
+      OPTIONAL { ?item wdt:P279 ?subcOf. }
+      OPTIONAL { ?item wdt:P361 ?pOf. }
+      OPTIONAL { ?item wdt:P131 ?place. }
+      OPTIONAL { ?item wdt:P18 ?img. }
+    """
+        + triple_extras
+        + f'      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "{label_langs}". }}\n'
+        + """
+    }
+  }
+}
+GROUP BY ?item ?itemLabel ?itemDescription ?placeLabel ?image
+         ?classes ?subclassOf ?partOf
+"""
+        + group_extras
+    )
+
+    raw = flatten_bindings(run_sparql(WIKIDATA_SPARQL, query))
+    prop_keys = [f"x_{e['property']}" for e in valid_props]
+    return _conflate_and_rank(raw, source_classes=source_classes,
+                              prop_keys=prop_keys,
+                              mode="geo",
+                              source_label=source_label)
 
 def flatten_bindings(bindings):
     """Turn SPARQL bindings into simple dicts keyed by variable name."""
@@ -240,8 +311,13 @@ def flatten_bindings(bindings):
         out.append({k: v.get("value", "") for k, v in row.items()})
     return out
 
+# Weights used in label mode (class match dominates)
 _WEIGHT_CLASS = 0.6
 _WEIGHT_COVERAGE = 0.4
+# Weights used in geo mode: label similarity dominates, the rest break ties.
+_WEIGHT_LABEL_GEO = 0.7
+_WEIGHT_CLASS_GEO = 0.2
+_WEIGHT_COVERAGE_GEO = 0.1
 _MIN_TOKEN_LEN = 2
 
 
@@ -262,20 +338,34 @@ def _dice(a: set[str], b: set[str]) -> float:
 
 
 def _score_candidate(source_classes: str, cand: dict,
-                     prop_keys: list[str]) -> float:
+                     prop_keys: list[str],
+                     mode: str = "label",
+                     source_label: str = "") -> float:
     class_sim = _dice(_tokens(source_classes), _tokens(cand.get("classes", "")))
 
     if prop_keys:
         filled = sum(1 for k in prop_keys if cand.get(k))
         coverage = filled / len(prop_keys)
     else:
-        coverage = 1.0  # neutral when the task defines no extra properties
+        coverage = 1.0
+
+    if mode == "geo":
+        label_sim = _dice(_tokens(source_label), _tokens(cand.get("itemLabel", "")))
+        return (
+            _WEIGHT_LABEL_GEO * label_sim
+            + _WEIGHT_CLASS_GEO * class_sim
+            + _WEIGHT_COVERAGE_GEO * coverage
+        )
 
     return _WEIGHT_CLASS * class_sim + _WEIGHT_COVERAGE * coverage
 
 
+
+
 def _conflate_and_rank(rows: list[dict], source_classes: str,
-                       prop_keys: list[str]) -> list[dict]:
+                       prop_keys: list[str],
+                       mode: str = "label",
+                       source_label: str = "") -> list[dict]:
     """Merge rows sharing a QID, then sort by descending score."""
     merged: dict[str, dict] = {}
 
@@ -314,9 +404,11 @@ def _conflate_and_rank(rows: list[dict], source_classes: str,
             cand[f] = ", ".join(uniq)
 
     # Score and sort.
+
     scored = []
     for cand in merged.values():
-        cand["_score"] = _score_candidate(source_classes, cand, prop_keys)
+        cand["_score"] = _score_candidate(source_classes, cand, prop_keys,
+                                          mode=mode, source_label=source_label)
         scored.append(cand)
     scored.sort(key=lambda c: (-c["_score"], c.get("itemLabel", "").lower()))
     return scored
@@ -430,16 +522,31 @@ def align():
 
     default_label = current.get("itemLabel", "")
     search_string = request.args.get("search", default_label).strip() or default_label
-    search_lang = request.args.get("lang", task['default_search_language']).strip().lower()
+    search_lang = request.args.get("lang", task.get("default_search_language", DEFAULT_SEARCH_LANG)).strip().lower()
     if not re.fullmatch(r"[a-z]{2,3}", search_lang):
         search_lang = DEFAULT_SEARCH_LANG
 
-    candidates = get_matching_candidates(
-        search_string,
-        language=search_lang,
-        extra_properties=task.get("wikidata_properties", []),
-        source_classes=current.get("classes", ""),
-    )
+    # NEW: mode switch between label search and coordinate search
+    mode = request.args.get("mode", "label")
+    geo_point = current.get("geo", "")
+    has_geo = bool(geo_point and geo_point.strip().startswith("Point("))
+
+    if mode == "geo" and has_geo:
+        candidates = get_candidates_by_coordinates(
+            geo_point,
+            language=search_lang,
+            extra_properties=task.get("wikidata_properties", []),
+            source_classes=current.get("classes", ""),
+            source_label=default_label,
+        )
+    else:
+        mode = "label"  # fall back if geo was requested but not available
+        candidates = get_matching_candidates(
+            search_string,
+            language=search_lang,
+            extra_properties=task.get("wikidata_properties", []),
+            source_classes=current.get("classes", ""),
+        )
 
     return render_template(
         "align.html",
@@ -452,6 +559,9 @@ def align():
         default_label=default_label,
         default_lang=DEFAULT_SEARCH_LANG,
         task=task,
+        mode=mode,
+        has_geo=has_geo,
+        geo_point=geo_point,
     )
 
 @app.route("/choose", methods=["POST"])

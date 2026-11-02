@@ -1,0 +1,11 @@
+{
+  "name": "ondarea-geo",
+  "description": "Lists ondare items with missing Wikidata link, with geolocation",
+  "wikibase": "ehkultura.wikibase.cloud",
+  "wikidata_properties": [
+    {
+      "property": "P131",
+      "label": "place"
+    }
+  ]
+}

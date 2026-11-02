@@ -1,0 +1,14 @@
+PREFIX ehwb: <https://ehkultura.wikibase.cloud/entity/>
+PREFIX ehdp: <https://ehkultura.wikibase.cloud/prop/direct/>
+PREFIX ehp: <https://ehkultura.wikibase.cloud/prop/>
+PREFIX ehps: <https://ehkultura.wikibase.cloud/prop/statement/>
+PREFIX ehpq: <https://ehkultura.wikibase.cloud/prop/qualifier/>
+PREFIX ehpr: <https://ehkultura.wikibase.cloud/prop/reference/>
+PREFIX ehno: <https://ehkultura.wikibase.cloud/prop/novalue/>
+
+select ?item ?itemLabel (xsd:integer(?ej) as ?fitxa) ?wd ?placeLabel (sample(?ge) as ?geo) (group_concat(?class; separator=" | ") as ?classes) where
+{?item ehdp:P56 ?ej. ?item ehdp:P12 ?ge. optional {?item ehdp:P36 ?place.} filter not exists {?item ehdp:P1 ?wd.}
+ optional {?item ehdp:P5 [rdfs:label ?class]. filter(lang(?class)="eu")}
+ SERVICE wikibase:label { bd:serviceParam wikibase:language "eu,es,mul,en". }
+ } group by ?item ?itemLabel ?ej ?wd ?placeLabel ?geo ?classes order by ?fitxa
+limit 5
